@@ -4,7 +4,7 @@
         {
             "id": "server-favoriten",
             "name": "Server-Favoriten",
-            "description": "Speichert deine Lieblingsserver und lässt dich ihnen schnell beitreten.",
+            "description": "Speichert deine Lieblingsserver und ermöglicht einen schnellen Beitritt.",
             "version": "1.0.0",
             "download": "https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/Plugins/Server-Favoriten/plugin.bat"
         },
