@@ -281,8 +281,8 @@ echo       VERFUEGBARE PLUGINS
 echo ================================
 echo.
 
-powershell -NoProfile -Command ^
-"$base=$env:LAUNCHER_DIR; try { $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; foreach($p in $data.plugins) { $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); $status=if(Test-Path $file){'VORHANDEN'}else{'FEHLT'}; Write-Host ('['+$status+'] '+$p.name) -ForegroundColor Green; Write-Host $p.description; Write-Host ('Version: '+$p.version); Write-Host '' } } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"$base='%LAUNCHER_DIR%'; try { $json=Join-Path $base 'config\plugins.json'; if(!(Test-Path $json)){throw 'plugins.json nicht gefunden!'}; $data=Get-Content $json -Raw | ConvertFrom-Json; foreach($p in $data.plugins){ $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); $status=if(Test-Path $file){'VORHANDEN'}else{'FEHLT'}; Write-Host ('['+$status+'] '+$p.name) -ForegroundColor Green; Write-Host $p.description; Write-Host ('Version: '+$p.version); Write-Host '' } } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
 
 echo.
 pause
@@ -296,8 +296,8 @@ echo       INSTALLIERTE PLUGINS
 echo ================================
 echo.
 
-powershell -NoProfile -Command ^
-"$base=$env:LAUNCHER_DIR; $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; foreach($p in $data.plugins) { $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); if(Test-Path $file){ Write-Host ('[OK] '+$p.name) -ForegroundColor Green } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"$base='%LAUNCHER_DIR%'; try { $json=Join-Path $base 'config\plugins.json'; $data=Get-Content $json -Raw | ConvertFrom-Json; foreach($p in $data.plugins){ $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); if(Test-Path $file){ Write-Host ('[OK] '+$p.name) -ForegroundColor Green } } } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
 
 echo.
 pause
@@ -311,8 +311,8 @@ echo     PLUGINS VERWALTEN
 echo ================================
 echo.
 
-powershell -NoProfile -Command ^
-"$base=$env:LAUNCHER_DIR; $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; $state=$env:PLUGIN_STATE; $active=@(Get-Content $state -ErrorAction SilentlyContinue); $available=@($data.plugins | Where-Object { Test-Path (Join-Path $base ('Plugins\'+$_.id+'\plugin.bat')) }); for($i=0;$i -lt $available.Count;$i++){ $status=if($active -contains $available[$i].id){'AKTIV'}else{'INAKTIV'}; Write-Host ('['+($i+1)+'] '+$available[$i].name+' - '+$status) }; Write-Host ''; $choice=Read-Host 'Nummer eingeben (0 = Zurueck)'; $n=0; if($choice -ne '0' -and [int]::TryParse($choice,[ref]$n) -and $n -ge 1 -and $n -le $available.Count){ $id=$available[$n-1].id; if($active -contains $id){$active=@($active | Where-Object {$_ -ne $id}); Write-Host 'Plugin deaktiviert.'}else{$active+= $id; Write-Host 'Plugin aktiviert.'}; Set-Content -LiteralPath $state -Value $active -Encoding UTF8 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"$base='%LAUNCHER_DIR%'; $state='%PLUGIN_STATE%'; try { $json=Join-Path $base 'config\plugins.json'; $data=Get-Content $json -Raw | ConvertFrom-Json; $active=@(Get-Content $state -ErrorAction SilentlyContinue); $available=@($data.plugins | Where-Object { Test-Path (Join-Path $base ('Plugins\'+$_.id+'\plugin.bat')) }); if($available.Count -eq 0){Write-Host 'Keine Plugins gefunden.'; return}; for($i=0;$i -lt $available.Count;$i++){ $status=if($active -contains $available[$i].id){'AKTIV'}else{'INAKTIV'}; Write-Host ('['+($i+1)+'] '+$available[$i].name+' - '+$status) }; Write-Host ''; $choice=Read-Host 'Nummer eingeben (0 = Zurueck)'; $n=0; if($choice -eq '0'){return}; if([int]::TryParse($choice,[ref]$n) -and $n -ge 1 -and $n -le $available.Count){ $id=$available[$n-1].id; if($active -contains $id){$active=@($active | Where-Object {$_ -ne $id}); Write-Host 'Plugin deaktiviert.'}else{$active+= $id; Write-Host 'Plugin aktiviert.'}; Set-Content -LiteralPath $state -Value $active -Encoding UTF8 }else{Write-Host 'Ungueltige Auswahl.'} } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
 
 echo.
 pause
