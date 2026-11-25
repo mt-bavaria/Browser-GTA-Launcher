@@ -276,14 +276,23 @@ goto plugins
 
 :availablePlugins
 cls
-echo ================================
-echo       VERFUEGBARE PLUGINS
-echo ================================
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0config\plugin_manager.ps1" -Mode available
 echo.
+pause
+goto plugins
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"$base='%LAUNCHER_DIR%'; try { $json=Join-Path $base 'config\plugins.json'; if(!(Test-Path $json)){throw 'plugins.json nicht gefunden!'}; $data=Get-Content $json -Raw | ConvertFrom-Json; foreach($p in $data.plugins){ $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); $status=if(Test-Path $file){'VORHANDEN'}else{'FEHLT'}; Write-Host ('['+$status+'] '+$p.name) -ForegroundColor Green; Write-Host $p.description; Write-Host ('Version: '+$p.version); Write-Host '' } } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
 
+:installedPlugins
+cls
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0config\plugin_manager.ps1" -Mode installed
+echo.
+pause
+goto plugins
+
+
+:managePlugins
+cls
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0config\plugin_manager.ps1" -Mode manage
 echo.
 pause
 goto plugins
