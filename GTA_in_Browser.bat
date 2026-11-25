@@ -5,16 +5,19 @@ title GTA Launcher
 mode con: cols=55 lines=25
 
 set "LAUNCHER_DIR=%~dp0"
-set "PLUGIN_FOLDER=%LOCALAPPDATA%\GTA-Launcher"
-set "PLUGIN_STATE=%PLUGIN_FOLDER%\active_plugins.txt"
+set "PLUGIN_STATE=%~dp0active_plugins.txt"
 set "FAVORITES=%~dp0favoriten.txt"
 set "SERVERS=%~dp0gespeicherte_server.txt"
 
 :: Dateien automatisch erstellen
-if not exist "%PLUGIN_FOLDER%" mkdir "%PLUGIN_FOLDER%"
 if not exist "%PLUGIN_STATE%" type nul > "%PLUGIN_STATE%"
 if not exist "%FAVORITES%" type nul > "%FAVORITES%"
+if not exist "%SERVERS%" type nul > "%SERVERS%"
 
+
+:: =================================
+:: HAUPTMENUE
+:: =================================
 
 :menu
 cls
@@ -38,21 +41,9 @@ echo [!MENU_COUNT!] Server mit Freunden
 :: Server-Favoriten
 findstr /x /i "server-favoriten" "%PLUGIN_STATE%" >nul
 if not errorlevel 1 (
-    if exist "%~dp0Plugins\Server-Favoriten\plugin.bat" (
-        set /a MENU_COUNT+=1
-        echo [!MENU_COUNT!] Server-Favoriten
-        set "MENU_ACTIONS=!MENU_ACTIONS!|favorites"
-    )
-)
-
-:: Server-Suche
-findstr /x /i "server-suche" "%PLUGIN_STATE%" >nul
-if not errorlevel 1 (
-    if exist "%~dp0Plugins\Server-Suche\plugin.bat" (
-        set /a MENU_COUNT+=1
-        echo [!MENU_COUNT!] Server-Suche
-        set "MENU_ACTIONS=!MENU_ACTIONS!|search"
-    )
+    set /a MENU_COUNT+=1
+    echo [!MENU_COUNT!] Server-Favoriten
+    set "MENU_ACTIONS=!MENU_ACTIONS!|favorites"
 )
 
 set /a MENU_COUNT+=1
@@ -75,19 +66,25 @@ for /f "tokens=%menuChoice% delims=|" %%A in ("!MENU_ACTIONS!") do (
 if "!MENU_ACTION!"=="offline" goto bayday
 if "!MENU_ACTION!"=="join" goto ip
 if "!MENU_ACTION!"=="server" goto server
-if "!MENU_ACTION!"=="favorites" goto runFavorites
-if "!MENU_ACTION!"=="search" goto runSearch
+if "!MENU_ACTION!"=="favorites" goto favorites
 if "!MENU_ACTION!"=="plugins" goto plugins
 if "!MENU_ACTION!"=="exit" exit
 
 goto menu
 
 
+:: =================================
+:: BAYDAY
+:: =================================
+
 :bayday
-cls
 start "" https://bayday.io
 goto menu
 
+
+:: =================================
+:: SERVER BEITRETEN
+:: =================================
 
 :ip
 cls
@@ -99,6 +96,10 @@ set /p "serverIP=Servercode: "
 start "" "https://bayday.io/online#%serverIP%"
 goto menu
 
+
+:: =================================
+:: SERVERVERWALTUNG
+:: =================================
 
 :server
 cls
@@ -149,8 +150,6 @@ echo.
 
 set /p "serverName=Servernamen eingeben: "
 
-if not exist "%SERVERS%" type nul > "%SERVERS%"
-
 >>"%SERVERS%" echo %serverName%^|%friendsServer%^|%friendsURL%
 
 echo.
@@ -171,12 +170,6 @@ echo ================================
 echo         SERVER BEITRETEN
 echo ================================
 echo.
-
-if not exist "%SERVERS%" (
-    echo Keine Server gespeichert!
-    pause
-    goto server
-)
 
 set count=0
 
@@ -218,12 +211,6 @@ echo ================================
 echo         LINK KOPIEREN
 echo ================================
 echo.
-
-if not exist "%SERVERS%" (
-    echo Keine Server gespeichert!
-    pause
-    goto server
-)
 
 set count=0
 
@@ -269,12 +256,6 @@ echo ================================
 echo         SERVER LOESCHEN
 echo ================================
 echo.
-
-if not exist "%SERVERS%" (
-    echo Keine Server gespeichert!
-    pause
-    goto server
-)
 
 set count=0
 
@@ -330,66 +311,252 @@ echo ================================
 echo          PLUGIN-MENUE
 echo ================================
 echo.
-echo [1] Server-Favoriten aktivieren/deaktivieren
-echo [2] Server-Suche aktivieren/deaktivieren
+
+findstr /x /i "server-favoriten" "%PLUGIN_STATE%" >nul
+
+if errorlevel 1 (
+    echo [1] Server-Favoriten aktivieren
+) else (
+    echo [1] Server-Favoriten deaktivieren
+)
+
 echo [0] Zurueck
 echo.
 
 set /p "pluginChoice=Auswahl: "
 
 if "%pluginChoice%"=="0" goto menu
-if "%pluginChoice%"=="1" set "PLUGIN_ID=server-favoriten"
-if "%pluginChoice%"=="2" set "PLUGIN_ID=server-suche"
+if not "%pluginChoice%"=="1" goto plugins
 
-if not defined PLUGIN_ID goto plugins
-
-if "%PLUGIN_ID%"=="server-favoriten" (
-    set "PLUGIN_FILE=%~dp0Plugins\Server-Favoriten\plugin.bat"
-) else (
-    set "PLUGIN_FILE=%~dp0Plugins\Server-Suche\plugin.bat"
-)
-
-if not exist "!PLUGIN_FILE!" (
-    echo.
-    echo Plugin-Datei nicht gefunden!
-    pause
-    set "PLUGIN_ID="
-    goto plugins
-)
-
-findstr /x /i "!PLUGIN_ID!" "%PLUGIN_STATE%" >nul
+findstr /x /i "server-favoriten" "%PLUGIN_STATE%" >nul
 
 if errorlevel 1 (
-    >>"%PLUGIN_STATE%" echo !PLUGIN_ID!
+    >>"%PLUGIN_STATE%" echo server-favoriten
     echo.
-    echo Plugin aktiviert!
+    echo Server-Favoriten aktiviert!
 ) else (
-    findstr /v /i /x "!PLUGIN_ID!" "%PLUGIN_STATE%" > "%PLUGIN_STATE%.tmp"
+    findstr /v /i /x "server-favoriten" "%PLUGIN_STATE%" > "%PLUGIN_STATE%.tmp"
     move /y "%PLUGIN_STATE%.tmp" "%PLUGIN_STATE%" >nul
     echo.
-    echo Plugin deaktiviert!
+    echo Server-Favoriten deaktiviert!
 )
-
-set "PLUGIN_ID="
-set "PLUGIN_FILE="
 
 pause
 goto plugins
 
 
 :: =================================
-:: SERVER-FAVORITEN STARTEN
+:: SERVER-FAVORITEN
 :: =================================
 
-:runFavorites
-call "%~dp0Plugins\Server-Favoriten\plugin.bat"
-goto menu
+:favorites
+cls
+echo =================================
+echo          SERVER-FAVORITEN
+echo =================================
+echo.
+echo [1] Favoriten anzeigen
+echo [2] Server hinzufuegen
+echo [3] Favoriten entfernen
+echo [4] Favorit betreten
+echo [0] Zurueck
+echo.
+
+set /p "choice=Auswahl: "
+
+if "%choice%"=="0" goto menu
+if "%choice%"=="1" goto showFavorites
+if "%choice%"=="2" goto addFavorite
+if "%choice%"=="3" goto removeFavorite
+if "%choice%"=="4" goto joinFavorite
+
+goto favorites
 
 
 :: =================================
-:: SERVER-SUCHE STARTEN
+:: FAVORITEN ANZEIGEN
 :: =================================
 
-:runSearch
-call "%~dp0Plugins\Server-Suche\plugin.bat"
-goto menu
+:showFavorites
+cls
+echo =================================
+echo          MEINE FAVORITEN
+echo =================================
+echo.
+
+set count=0
+
+for /f "usebackq tokens=1 delims=|" %%A in ("%FAVORITES%") do (
+    set /a count+=1
+    echo [!count!] %%A
+)
+
+if !count! EQU 0 echo Noch keine Favoriten vorhanden.
+
+echo.
+pause
+goto favorites
+
+
+:: =================================
+:: FAVORIT HINZUFUEGEN
+:: =================================
+
+:addFavorite
+cls
+echo =================================
+echo       FAVORIT HINZUFUEGEN
+echo =================================
+echo.
+
+set count=0
+
+for /f "usebackq tokens=1 delims=|" %%A in ("%SERVERS%") do (
+    set /a count+=1
+    echo [!count!] %%A
+)
+
+if !count! EQU 0 (
+    echo Du hast noch keine Server gespeichert!
+    pause
+    goto favorites
+)
+
+echo.
+set /p "selection=Servernummer: "
+
+set count=0
+set "selectedName="
+set "selectedCode="
+set "selectedURL="
+
+for /f "usebackq tokens=1-3 delims=|" %%A in ("%SERVERS%") do (
+    set /a count+=1
+    if "!count!"=="!selection!" (
+        set "selectedName=%%A"
+        set "selectedCode=%%B"
+        set "selectedURL=%%C"
+    )
+)
+
+if not defined selectedCode (
+    echo Ungueltige Auswahl!
+    pause
+    goto favorites
+)
+
+findstr /l /c:"|!selectedCode!|" "%FAVORITES%" >nul
+
+if not errorlevel 1 (
+    echo.
+    echo Dieser Server ist bereits ein Favorit!
+    pause
+    goto favorites
+)
+
+>>"%FAVORITES%" echo !selectedName!^|!selectedCode!^|!selectedURL!
+
+echo.
+echo Server wurde zu deinen Favoriten hinzugefuegt!
+pause
+goto favorites
+
+
+:: =================================
+:: FAVORIT ENTFERNEN
+:: =================================
+
+:removeFavorite
+cls
+echo =================================
+echo        FAVORIT ENTFERNEN
+echo =================================
+echo.
+
+set count=0
+
+for /f "usebackq tokens=1 delims=|" %%A in ("%FAVORITES%") do (
+    set /a count+=1
+    echo [!count!] %%A
+)
+
+if !count! EQU 0 (
+    echo Keine Favoriten vorhanden!
+    pause
+    goto favorites
+)
+
+echo.
+set /p "selection=Nummer entfernen: "
+
+set count=0
+set "found="
+
+if exist "%FAVORITES%.tmp" del "%FAVORITES%.tmp"
+
+for /f "usebackq tokens=1-3 delims=|" %%A in ("%FAVORITES%") do (
+    set /a count+=1
+    if not "!count!"=="!selection!" (
+        >>"%FAVORITES%.tmp" echo %%A^|%%B^|%%C
+    ) else (
+        set "found=1"
+    )
+)
+
+if defined found (
+    move /y "%FAVORITES%.tmp" "%FAVORITES%" >nul
+    echo.
+    echo Favorit entfernt!
+) else (
+    if exist "%FAVORITES%.tmp" del "%FAVORITES%.tmp"
+    echo.
+    echo Ungueltige Auswahl!
+)
+
+pause
+goto favorites
+
+
+:: =================================
+:: FAVORIT BETRETEN
+:: =================================
+
+:joinFavorite
+cls
+echo =================================
+echo          FAVORIT BETRETEN
+echo =================================
+echo.
+
+set count=0
+
+for /f "usebackq tokens=1 delims=|" %%A in ("%FAVORITES%") do (
+    set /a count+=1
+    echo [!count!] %%A
+)
+
+if !count! EQU 0 (
+    echo Keine Favoriten vorhanden!
+    pause
+    goto favorites
+)
+
+echo.
+set /p "selection=Favorit auswaehlen: "
+
+set count=0
+set "selectedURL="
+
+for /f "usebackq tokens=1-3 delims=|" %%A in ("%FAVORITES%") do (
+    set /a count+=1
+    if "!count!"=="!selection!" set "selectedURL=%%C"
+)
+
+if not defined selectedURL (
+    echo Ungueltige Auswahl!
+    pause
+    goto favorites
+)
+
+start "" "!selectedURL!"
+goto favorites
