@@ -1,1 +1,19 @@
-
+{
+    "version": 1,
+    "plugins": [
+        {
+            "id": "server-favoriten",
+            "name": "Server-Favoriten",
+            "description": "Speichert deine Lieblingsserver und lässt dich ihnen schnell beitreten.",
+            "version": "1.0.0",
+            "download": "https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/Plugins/Server-Favoriten/plugin.bat"
+        },
+        {
+            "id": "server-suche",
+            "name": "Server-Suche",
+            "description": "Erweitert den Launcher um eine Server-Suchfunktion.",
+            "version": "1.0.0",
+            "download": "https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/Plugins/Server-Suche/plugin.bat"
+        }
+    ]
+}
