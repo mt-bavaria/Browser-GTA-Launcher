@@ -266,7 +266,31 @@ echo ================================
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"$url='https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/Plugin-System/plugins.json'; try { $data=Invoke-RestMethod -Uri $url -ErrorAction Stop; foreach($plugin in $data.plugins) { Write-Host ('Name: ' + $plugin.name) -ForegroundColor Green; Write-Host ('Beschreibung: ' + $plugin.description); Write-Host ('Version: ' + $plugin.version); Write-Host '' } } catch { Write-Host 'Plugin-Verzeichnis konnte nicht geladen werden!' -ForegroundColor Red; Write-Host $_.Exception.Message }"
+"$ErrorActionPreference='Stop'; try { ^
+$url='https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/config/plugins.json'; ^
+$data=Invoke-RestMethod -Uri $url; ^
+$plugins=@($data.plugins); ^
+for($i=0;$i -lt $plugins.Count;$i++){ ^
+Write-Host ('['+($i+1)+'] '+$plugins[$i].name) -ForegroundColor Green; ^
+Write-Host $plugins[$i].description; ^
+Write-Host ''; ^
+}; ^
+$choice=Read-Host 'Plugin-Nummer (0 = Zurueck)'; ^
+$number=0; ^
+if($choice -eq '0'){ Write-Host 'Zurueck'; } ^
+elseif([int]::TryParse($choice,[ref]$number) -and $number -ge 1 -and $number -le $plugins.Count){ ^
+$plugin=$plugins[$number-1]; ^
+Write-Host ('Ausgewaehlt: '+$plugin.name); ^
+$confirm=Read-Host 'Installieren? (J/N)'; ^
+if($confirm -match '^[Jj]$'){ ^
+$folder=Join-Path $env:LOCALAPPDATA ('GTA-Launcher\Plugins\'+$plugin.id); ^
+New-Item -ItemType Directory -Force -Path $folder | Out-Null; ^
+$target=Join-Path $folder 'plugin.bat'; ^
+Invoke-WebRequest -Uri $plugin.download -OutFile $target; ^
+Write-Host 'Plugin heruntergeladen!' -ForegroundColor Green; ^
+} else { Write-Host 'Installation abgebrochen.'; } ^
+} else { Write-Host 'Ungueltige Auswahl!' -ForegroundColor Red; } ^
+} catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red; }"
 
 echo.
 pause
