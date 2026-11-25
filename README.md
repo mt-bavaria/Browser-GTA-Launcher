@@ -1,3 +1,5 @@
+# 🎮 GTA Launcher – Bayday.io
+
 Willkommen beim GTA Launcher!
 
 Mit diesem Launcher kannst du Bayday.io starten, Server beitreten und deine eigenen Server verwalten.
@@ -59,5 +61,27 @@ Der Launcher bietet folgende Funktionen:
 - Entpacke die ZIP-Datei vollständig, bevor du den Launcher startest.
 - Verschiebe oder lösche den entpackten Ordner nicht, solange du die Desktop-Verknüpfung verwendest.
 - Der Launcher benötigt eine Internetverbindung, um Bayday.io zu öffnen.
+
+## 🛡️ Windows Defender – Sicherheitshinweis
+
+Beim Herunterladen oder Starten des GTA Launchers kann es vorkommen, dass Windows Defender oder Microsoft SmartScreen eine Sicherheitswarnung anzeigt.
+
+**Warum passiert das?**
+
+- Der Launcher ist kein weit verbreitetes, signiertes Programm.
+- Windows kennt möglicherweise noch nicht genügend Informationen über die Datei.
+- Deshalb kann eine Warnung erscheinen, obwohl eine Datei nicht zwangsläufig gefährlich ist.
+
+**Was solltest du tun?**
+
+1. Lade den Launcher ausschließlich aus unserem offiziellen GitHub-Repository herunter.
+2. Überprüfe, ob die heruntergeladenen Dateien aus dieser Quelle stammen.
+3. Lass die Dateien von Windows Defender überprüfen.
+4. Wenn eine Bedrohung erkannt wird, führe die Datei nicht aus und melde das Problem.
+5. Wenn Windows Defender keine Bedrohung erkennt, kannst du den Launcher starten. Beachte aber, dass ein negativer Scan keine absolute Sicherheitsgarantie ist.
+
+**Wichtig:**
+
+Deaktiviere Windows Defender nicht und ignoriere keine Virenwarnungen. Eine Sicherheitswarnung sollte immer ernst genommen werden.
 
 Viel Spaß mit dem GTA Launcher! 🚀
