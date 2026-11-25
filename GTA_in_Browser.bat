@@ -8,9 +8,10 @@ mode con: cols=55 lines=22
 cls
 
 powershell -NoProfile -Command ^
-"$options = @('Offline spielen','Server beitreten','Server mit Freunden','Beenden'); $selected = 0; while ($true) { Clear-Host; Write-Host '========== HAUPTMENUE =========='; Write-Host ''; for ($i=0; $i -lt $options.Count; $i++) { if ($i -eq $selected) { Write-Host ('  ^> ' + $options[$i]) -ForegroundColor Green } else { Write-Host ('    ' + $options[$i]) } }; $key = [Console]::ReadKey($true); if ($key.Key -eq 'UpArrow') { $selected = ($selected - 1 + $options.Count) %% $options.Count } elseif ($key.Key -eq 'DownArrow') { $selected = ($selected + 1) %% $options.Count } elseif ($key.Key -eq 'Enter') { exit ($selected + 1) } }"
+"$options = @('Offline spielen','Server beitreten','Server mit Freunden','Plugins','Beenden'); $selected = 0; while ($true) { Clear-Host; Write-Host '========== HAUPTMENUE =========='; Write-Host ''; for ($i=0; $i -lt $options.Count; $i++) { if ($i -eq $selected) { Write-Host ('  ^> ' + $options[$i]) -ForegroundColor Green } else { Write-Host ('    ' + $options[$i]) } }; $key = [Console]::ReadKey($true); if ($key.Key -eq 'UpArrow') { $selected = ($selected - 1 + $options.Count) %% $options.Count } elseif ($key.Key -eq 'DownArrow') { $selected = ($selected + 1) %% $options.Count } elseif ($key.Key -eq 'Enter') { exit ($selected + 1) } }"
 
-if errorlevel 4 exit
+if errorlevel 5 exit
+if errorlevel 4 goto plugins
 if errorlevel 3 goto server
 if errorlevel 2 goto ip
 if errorlevel 1 goto bayday
@@ -236,3 +237,55 @@ powershell -NoProfile -Command ^
 echo.
 pause
 goto server
+
+:plugins
+cls
+echo ================================
+echo          PLUGIN-MENUE
+echo ================================
+echo.
+echo [1] Verfuegbare Plugins anzeigen
+echo [2] Installierte Plugins
+echo [3] Zurueck
+echo.
+
+set /p "pluginChoice=Auswahl: "
+
+if "%pluginChoice%"=="1" goto availablePlugins
+if "%pluginChoice%"=="2" goto installedPlugins
+if "%pluginChoice%"=="3" goto menu
+
+goto plugins
+
+
+:availablePlugins
+cls
+echo ================================
+echo       VERFUEGBARE PLUGINS
+echo ================================
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"$url='https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/Plugin-System/plugins.json'; try { $data=Invoke-RestMethod -Uri $url -ErrorAction Stop; foreach($plugin in $data.plugins) { Write-Host ('Name: ' + $plugin.name) -ForegroundColor Green; Write-Host ('Beschreibung: ' + $plugin.description); Write-Host ('Version: ' + $plugin.version); Write-Host '' } } catch { Write-Host 'Plugin-Verzeichnis konnte nicht geladen werden!' -ForegroundColor Red; Write-Host $_.Exception.Message }"
+
+echo.
+pause
+goto plugins
+
+
+:installedPlugins
+cls
+echo ================================
+echo       INSTALLIERTE PLUGINS
+echo ================================
+echo.
+
+if not exist "%~dp0Plugins" (
+    echo Noch keine Plugins installiert.
+) else (
+    dir "%~dp0Plugins" /b /ad
+)
+
+echo.
+pause
+goto plugins
