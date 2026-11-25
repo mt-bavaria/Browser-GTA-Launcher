@@ -2,7 +2,18 @@
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
 title GTA Launcher
-mode con: cols=55 lines=22
+mode con: cols=55 lines=25
+
+set "LAUNCHER_DIR=%~dp0"
+set "PLUGIN_STATE=%LOCALAPPDATA%\GTA-Launcher\active_plugins.txt"
+
+if not exist "%LOCALAPPDATA%\GTA-Launcher" (
+    mkdir "%LOCALAPPDATA%\GTA-Launcher"
+)
+
+if not exist "%PLUGIN_STATE%" (
+    type nul > "%PLUGIN_STATE%"
+)
 
 :menu
 cls
@@ -232,11 +243,12 @@ echo.
 set /p "deleteSelect=Welche Nummer loeschen: "
 
 powershell -NoProfile -Command ^
-"$p=Join-Path '%~dp0' 'gespeicherte_server.txt'; $l=[System.Collections.Generic.List[string]]::new(); $l.AddRange([string[]](Get-Content -LiteralPath $p)); $n=0; if([int]::TryParse('%deleteSelect%',[ref]$n) -and $n -ge 1 -and $n -le $l.Count) { $l.RemoveAt($n-1); Set-Content -LiteralPath $p -Value $l -Encoding UTF8; Write-Host 'Server geloescht!' } else { Write-Host 'Ungueltige Auswahl!' }"
+"$p=Join-Path $env:LAUNCHER_DIR 'gespeicherte_server.txt'; $l=[System.Collections.Generic.List[string]]::new(); $l.AddRange([string[]](Get-Content -LiteralPath $p)); $n=0; if([int]::TryParse('%deleteSelect%',[ref]$n) -and $n -ge 1 -and $n -le $l.Count) { $l.RemoveAt($n-1); Set-Content -LiteralPath $p -Value $l -Encoding UTF8; Write-Host 'Server geloescht!' } else { Write-Host 'Ungueltige Auswahl!' }"
 
 echo.
 pause
 goto server
+
 
 :plugins
 cls
@@ -244,16 +256,20 @@ echo ================================
 echo          PLUGIN-MENUE
 echo ================================
 echo.
-echo [1] Verfuegbare Plugins anzeigen
+echo [1] Verfuegbare Plugins
 echo [2] Installierte Plugins
-echo [3] Zurueck
+echo [3] Plugins aktivieren/deaktivieren
+echo [4] Aktivierte Plugins starten
+echo [5] Zurueck
 echo.
 
 set /p "pluginChoice=Auswahl: "
 
 if "%pluginChoice%"=="1" goto availablePlugins
 if "%pluginChoice%"=="2" goto installedPlugins
-if "%pluginChoice%"=="3" goto menu
+if "%pluginChoice%"=="3" goto managePlugins
+if "%pluginChoice%"=="4" goto runPlugins
+if "%pluginChoice%"=="5" goto menu
 
 goto plugins
 
@@ -265,32 +281,8 @@ echo       VERFUEGBARE PLUGINS
 echo ================================
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"$ErrorActionPreference='Stop'; try { ^
-$url='https://raw.githubusercontent.com/mt-bavaria/Browser-GTA-Launcher/main/config/plugins.json'; ^
-$data=Invoke-RestMethod -Uri $url; ^
-$plugins=@($data.plugins); ^
-for($i=0;$i -lt $plugins.Count;$i++){ ^
-Write-Host ('['+($i+1)+'] '+$plugins[$i].name) -ForegroundColor Green; ^
-Write-Host $plugins[$i].description; ^
-Write-Host ''; ^
-}; ^
-$choice=Read-Host 'Plugin-Nummer (0 = Zurueck)'; ^
-$number=0; ^
-if($choice -eq '0'){ Write-Host 'Zurueck'; } ^
-elseif([int]::TryParse($choice,[ref]$number) -and $number -ge 1 -and $number -le $plugins.Count){ ^
-$plugin=$plugins[$number-1]; ^
-Write-Host ('Ausgewaehlt: '+$plugin.name); ^
-$confirm=Read-Host 'Installieren? (J/N)'; ^
-if($confirm -match '^[Jj]$'){ ^
-$folder=Join-Path $env:LOCALAPPDATA ('GTA-Launcher\Plugins\'+$plugin.id); ^
-New-Item -ItemType Directory -Force -Path $folder | Out-Null; ^
-$target=Join-Path $folder 'plugin.bat'; ^
-Invoke-WebRequest -Uri $plugin.download -OutFile $target; ^
-Write-Host 'Plugin heruntergeladen!' -ForegroundColor Green; ^
-} else { Write-Host 'Installation abgebrochen.'; } ^
-} else { Write-Host 'Ungueltige Auswahl!' -ForegroundColor Red; } ^
-} catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red; }"
+powershell -NoProfile -Command ^
+"$base=$env:LAUNCHER_DIR; try { $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; foreach($p in $data.plugins) { $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); $status=if(Test-Path $file){'VORHANDEN'}else{'FEHLT'}; Write-Host ('['+$status+'] '+$p.name) -ForegroundColor Green; Write-Host $p.description; Write-Host ('Version: '+$p.version); Write-Host '' } } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
 
 echo.
 pause
@@ -304,10 +296,58 @@ echo       INSTALLIERTE PLUGINS
 echo ================================
 echo.
 
-if not exist "%~dp0Plugins" (
-    echo Noch keine Plugins installiert.
-) else (
-    dir "%~dp0Plugins" /b /ad
+powershell -NoProfile -Command ^
+"$base=$env:LAUNCHER_DIR; $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; foreach($p in $data.plugins) { $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); if(Test-Path $file){ Write-Host ('[OK] '+$p.name) -ForegroundColor Green } }"
+
+echo.
+pause
+goto plugins
+
+
+:managePlugins
+cls
+echo ================================
+echo     PLUGINS VERWALTEN
+echo ================================
+echo.
+
+powershell -NoProfile -Command ^
+"$base=$env:LAUNCHER_DIR; $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; $state=$env:PLUGIN_STATE; $active=@(Get-Content $state -ErrorAction SilentlyContinue); $available=@($data.plugins | Where-Object { Test-Path (Join-Path $base ('Plugins\'+$_.id+'\plugin.bat')) }); for($i=0;$i -lt $available.Count;$i++){ $status=if($active -contains $available[$i].id){'AKTIV'}else{'INAKTIV'}; Write-Host ('['+($i+1)+'] '+$available[$i].name+' - '+$status) }; Write-Host ''; $choice=Read-Host 'Nummer eingeben (0 = Zurueck)'; $n=0; if($choice -ne '0' -and [int]::TryParse($choice,[ref]$n) -and $n -ge 1 -and $n -le $available.Count){ $id=$available[$n-1].id; if($active -contains $id){$active=@($active | Where-Object {$_ -ne $id}); Write-Host 'Plugin deaktiviert.'}else{$active+= $id; Write-Host 'Plugin aktiviert.'}; Set-Content -LiteralPath $state -Value $active -Encoding UTF8 }"
+
+echo.
+pause
+goto plugins
+
+
+:runPlugins
+cls
+echo ================================
+echo       AKTIVIERTE PLUGINS
+echo ================================
+echo.
+
+set "FOUND_PLUGIN="
+
+findstr /x /i "server-favoriten" "%PLUGIN_STATE%" >nul
+if not errorlevel 1 (
+    if exist "%~dp0Plugins\Server-Favoriten\plugin.bat" (
+        set "FOUND_PLUGIN=1"
+        echo Starte Server-Favoriten...
+        call "%~dp0Plugins\Server-Favoriten\plugin.bat"
+    )
+)
+
+findstr /x /i "server-suche" "%PLUGIN_STATE%" >nul
+if not errorlevel 1 (
+    if exist "%~dp0Plugins\Server-Suche\plugin.bat" (
+        set "FOUND_PLUGIN=1"
+        echo Starte Server-Suche...
+        call "%~dp0Plugins\Server-Suche\plugin.bat"
+    )
+)
+
+if not defined FOUND_PLUGIN (
+    echo Keine aktivierten Plugins gefunden.
 )
 
 echo.
