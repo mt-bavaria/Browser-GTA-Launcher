@@ -5,27 +5,82 @@ title GTA Launcher
 mode con: cols=55 lines=25
 
 set "LAUNCHER_DIR=%~dp0"
-set "PLUGIN_STATE=%LOCALAPPDATA%\GTA-Launcher\active_plugins.txt"
+set "PLUGIN_FOLDER=%LOCALAPPDATA%\GTA-Launcher"
+set "PLUGIN_STATE=%PLUGIN_FOLDER%\active_plugins.txt"
+set "FAVORITES=%~dp0favoriten.txt"
+set "SERVERS=%~dp0gespeicherte_server.txt"
 
-if not exist "%LOCALAPPDATA%\GTA-Launcher" (
-    mkdir "%LOCALAPPDATA%\GTA-Launcher"
-)
+:: Dateien automatisch erstellen
+if not exist "%PLUGIN_FOLDER%" mkdir "%PLUGIN_FOLDER%"
+if not exist "%PLUGIN_STATE%" type nul > "%PLUGIN_STATE%"
+if not exist "%FAVORITES%" type nul > "%FAVORITES%"
 
-if not exist "%PLUGIN_STATE%" (
-    type nul > "%PLUGIN_STATE%"
-)
 
 :menu
 cls
+set "MENU_ACTIONS=offline|join|server"
+set /a MENU_COUNT=0
 
-powershell -NoProfile -Command ^
-"$options = @('Offline spielen','Server beitreten','Server mit Freunden','Plugins','Beenden'); $selected = 0; while ($true) { Clear-Host; Write-Host '========== HAUPTMENUE =========='; Write-Host ''; for ($i=0; $i -lt $options.Count; $i++) { if ($i -eq $selected) { Write-Host ('  ^> ' + $options[$i]) -ForegroundColor Green } else { Write-Host ('    ' + $options[$i]) } }; $key = [Console]::ReadKey($true); if ($key.Key -eq 'UpArrow') { $selected = ($selected - 1 + $options.Count) %% $options.Count } elseif ($key.Key -eq 'DownArrow') { $selected = ($selected + 1) %% $options.Count } elseif ($key.Key -eq 'Enter') { exit ($selected + 1) } }"
+echo =========================================
+echo              GTA LAUNCHER
+echo =========================================
+echo.
 
-if errorlevel 5 exit
-if errorlevel 4 goto plugins
-if errorlevel 3 goto server
-if errorlevel 2 goto ip
-if errorlevel 1 goto bayday
+set /a MENU_COUNT+=1
+echo [!MENU_COUNT!] Offline spielen
+
+set /a MENU_COUNT+=1
+echo [!MENU_COUNT!] Server beitreten
+
+set /a MENU_COUNT+=1
+echo [!MENU_COUNT!] Server mit Freunden
+
+:: Server-Favoriten
+findstr /x /i "server-favoriten" "%PLUGIN_STATE%" >nul
+if not errorlevel 1 (
+    if exist "%~dp0Plugins\Server-Favoriten\plugin.bat" (
+        set /a MENU_COUNT+=1
+        echo [!MENU_COUNT!] Server-Favoriten
+        set "MENU_ACTIONS=!MENU_ACTIONS!|favorites"
+    )
+)
+
+:: Server-Suche
+findstr /x /i "server-suche" "%PLUGIN_STATE%" >nul
+if not errorlevel 1 (
+    if exist "%~dp0Plugins\Server-Suche\plugin.bat" (
+        set /a MENU_COUNT+=1
+        echo [!MENU_COUNT!] Server-Suche
+        set "MENU_ACTIONS=!MENU_ACTIONS!|search"
+    )
+)
+
+set /a MENU_COUNT+=1
+echo [!MENU_COUNT!] Plugins
+set "MENU_ACTIONS=!MENU_ACTIONS!|plugins"
+
+set /a MENU_COUNT+=1
+echo [!MENU_COUNT!] Beenden
+set "MENU_ACTIONS=!MENU_ACTIONS!|exit"
+
+echo.
+set /p "menuChoice=Auswahl: "
+
+set "MENU_ACTION="
+
+for /f "tokens=%menuChoice% delims=|" %%A in ("!MENU_ACTIONS!") do (
+    set "MENU_ACTION=%%A"
+)
+
+if "!MENU_ACTION!"=="offline" goto bayday
+if "!MENU_ACTION!"=="join" goto ip
+if "!MENU_ACTION!"=="server" goto server
+if "!MENU_ACTION!"=="favorites" goto runFavorites
+if "!MENU_ACTION!"=="search" goto runSearch
+if "!MENU_ACTION!"=="plugins" goto plugins
+if "!MENU_ACTION!"=="exit" exit
+
+goto menu
 
 
 :bayday
@@ -94,11 +149,9 @@ echo.
 
 set /p "serverName=Servernamen eingeben: "
 
-if not exist "%~dp0gespeicherte_server.txt" (
-    type nul > "%~dp0gespeicherte_server.txt"
-)
+if not exist "%SERVERS%" type nul > "%SERVERS%"
 
->>"%~dp0gespeicherte_server.txt" echo %serverName%^|%friendsServer%^|%friendsURL%
+>>"%SERVERS%" echo %serverName%^|%friendsServer%^|%friendsURL%
 
 echo.
 echo Server erfolgreich gespeichert!
@@ -119,7 +172,7 @@ echo         SERVER BEITRETEN
 echo ================================
 echo.
 
-if not exist "%~dp0gespeicherte_server.txt" (
+if not exist "%SERVERS%" (
     echo Keine Server gespeichert!
     pause
     goto server
@@ -127,7 +180,7 @@ if not exist "%~dp0gespeicherte_server.txt" (
 
 set count=0
 
-for /f "usebackq tokens=1 delims=|" %%A in ("%~dp0gespeicherte_server.txt") do (
+for /f "usebackq tokens=1 delims=|" %%A in ("%SERVERS%") do (
     set /a count+=1
     echo [!count!] %%A
 )
@@ -144,13 +197,12 @@ set /p "serverSelect=Servernummer: "
 set count=0
 set "selectedURL="
 
-for /f "usebackq tokens=1-3 delims=|" %%A in ("%~dp0gespeicherte_server.txt") do (
+for /f "usebackq tokens=1-3 delims=|" %%A in ("%SERVERS%") do (
     set /a count+=1
     if "!count!"=="!serverSelect!" set "selectedURL=%%C"
 )
 
 if not defined selectedURL (
-    echo.
     echo Ungueltige Auswahl!
     pause
     goto server
@@ -167,7 +219,7 @@ echo         LINK KOPIEREN
 echo ================================
 echo.
 
-if not exist "%~dp0gespeicherte_server.txt" (
+if not exist "%SERVERS%" (
     echo Keine Server gespeichert!
     pause
     goto server
@@ -175,7 +227,7 @@ if not exist "%~dp0gespeicherte_server.txt" (
 
 set count=0
 
-for /f "usebackq tokens=1 delims=|" %%A in ("%~dp0gespeicherte_server.txt") do (
+for /f "usebackq tokens=1 delims=|" %%A in ("%SERVERS%") do (
     set /a count+=1
     echo [!count!] %%A
 )
@@ -192,13 +244,12 @@ set /p "serverSelect=Servernummer: "
 set count=0
 set "selectedURL="
 
-for /f "usebackq tokens=1-3 delims=|" %%A in ("%~dp0gespeicherte_server.txt") do (
+for /f "usebackq tokens=1-3 delims=|" %%A in ("%SERVERS%") do (
     set /a count+=1
     if "!count!"=="!serverSelect!" set "selectedURL=%%C"
 )
 
 if not defined selectedURL (
-    echo.
     echo Ungueltige Auswahl!
     pause
     goto server
@@ -208,7 +259,6 @@ echo(!selectedURL!| clip
 
 echo.
 echo HTTPS-Link erfolgreich kopiert!
-echo.
 pause
 goto server
 
@@ -220,7 +270,7 @@ echo         SERVER LOESCHEN
 echo ================================
 echo.
 
-if not exist "%~dp0gespeicherte_server.txt" (
+if not exist "%SERVERS%" (
     echo Keine Server gespeichert!
     pause
     goto server
@@ -228,7 +278,7 @@ if not exist "%~dp0gespeicherte_server.txt" (
 
 set count=0
 
-for /f "usebackq tokens=1 delims=|" %%A in ("%~dp0gespeicherte_server.txt") do (
+for /f "usebackq tokens=1 delims=|" %%A in ("%SERVERS%") do (
     set /a count+=1
     echo [!count!] %%A
 )
@@ -242,13 +292,37 @@ if !count! EQU 0 (
 echo.
 set /p "deleteSelect=Welche Nummer loeschen: "
 
-powershell -NoProfile -Command ^
-"$p=Join-Path $env:LAUNCHER_DIR 'gespeicherte_server.txt'; $l=[System.Collections.Generic.List[string]]::new(); $l.AddRange([string[]](Get-Content -LiteralPath $p)); $n=0; if([int]::TryParse('%deleteSelect%',[ref]$n) -and $n -ge 1 -and $n -le $l.Count) { $l.RemoveAt($n-1); Set-Content -LiteralPath $p -Value $l -Encoding UTF8; Write-Host 'Server geloescht!' } else { Write-Host 'Ungueltige Auswahl!' }"
+set count=0
+set "found="
 
-echo.
+if exist "%SERVERS%.tmp" del "%SERVERS%.tmp"
+
+for /f "usebackq tokens=1-3 delims=|" %%A in ("%SERVERS%") do (
+    set /a count+=1
+    if not "!count!"=="!deleteSelect!" (
+        >>"%SERVERS%.tmp" echo %%A^|%%B^|%%C
+    ) else (
+        set "found=1"
+    )
+)
+
+if defined found (
+    move /y "%SERVERS%.tmp" "%SERVERS%" >nul
+    echo.
+    echo Server geloescht!
+) else (
+    if exist "%SERVERS%.tmp" del "%SERVERS%.tmp"
+    echo.
+    echo Ungueltige Auswahl!
+)
+
 pause
 goto server
 
+
+:: =================================
+:: PLUGIN-MENUE
+:: =================================
 
 :plugins
 cls
@@ -256,99 +330,66 @@ echo ================================
 echo          PLUGIN-MENUE
 echo ================================
 echo.
-echo [1] Verfuegbare Plugins
-echo [2] Installierte Plugins
-echo [3] Plugins aktivieren/deaktivieren
-echo [4] Aktivierte Plugins starten
-echo [5] Zurueck
+echo [1] Server-Favoriten aktivieren/deaktivieren
+echo [2] Server-Suche aktivieren/deaktivieren
+echo [0] Zurueck
 echo.
 
 set /p "pluginChoice=Auswahl: "
 
-if "%pluginChoice%"=="1" goto availablePlugins
-if "%pluginChoice%"=="2" goto installedPlugins
-if "%pluginChoice%"=="3" goto managePlugins
-if "%pluginChoice%"=="4" goto runPlugins
-if "%pluginChoice%"=="5" goto menu
+if "%pluginChoice%"=="0" goto menu
+if "%pluginChoice%"=="1" set "PLUGIN_ID=server-favoriten"
+if "%pluginChoice%"=="2" set "PLUGIN_ID=server-suche"
 
-goto plugins
+if not defined PLUGIN_ID goto plugins
 
-
-:availablePlugins
-cls
-echo ================================
-echo       VERFUEGBARE PLUGINS
-echo ================================
-echo.
-
-powershell -NoProfile -Command ^
-"$base=$env:LAUNCHER_DIR; try { $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; foreach($p in $data.plugins) { $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); $status=if(Test-Path $file){'VORHANDEN'}else{'FEHLT'}; Write-Host ('['+$status+'] '+$p.name) -ForegroundColor Green; Write-Host $p.description; Write-Host ('Version: '+$p.version); Write-Host '' } } catch { Write-Host ('FEHLER: '+$_.Exception.Message) -ForegroundColor Red }"
-
-echo.
-pause
-goto plugins
-
-
-:installedPlugins
-cls
-echo ================================
-echo       INSTALLIERTE PLUGINS
-echo ================================
-echo.
-
-powershell -NoProfile -Command ^
-"$base=$env:LAUNCHER_DIR; $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; foreach($p in $data.plugins) { $file=Join-Path $base ('Plugins\'+$p.id+'\plugin.bat'); if(Test-Path $file){ Write-Host ('[OK] '+$p.name) -ForegroundColor Green } }"
-
-echo.
-pause
-goto plugins
-
-
-:managePlugins
-cls
-echo ================================
-echo     PLUGINS VERWALTEN
-echo ================================
-echo.
-
-powershell -NoProfile -Command ^
-"$base=$env:LAUNCHER_DIR; $data=Get-Content (Join-Path $base 'config\plugins.json') -Raw | ConvertFrom-Json; $state=$env:PLUGIN_STATE; $active=@(Get-Content $state -ErrorAction SilentlyContinue); $available=@($data.plugins | Where-Object { Test-Path (Join-Path $base ('Plugins\'+$_.id+'\plugin.bat')) }); for($i=0;$i -lt $available.Count;$i++){ $status=if($active -contains $available[$i].id){'AKTIV'}else{'INAKTIV'}; Write-Host ('['+($i+1)+'] '+$available[$i].name+' - '+$status) }; Write-Host ''; $choice=Read-Host 'Nummer eingeben (0 = Zurueck)'; $n=0; if($choice -ne '0' -and [int]::TryParse($choice,[ref]$n) -and $n -ge 1 -and $n -le $available.Count){ $id=$available[$n-1].id; if($active -contains $id){$active=@($active | Where-Object {$_ -ne $id}); Write-Host 'Plugin deaktiviert.'}else{$active+= $id; Write-Host 'Plugin aktiviert.'}; Set-Content $state $active -Encoding UTF8 }"
-
-echo.
-pause
-goto plugins
-
-:runPlugins
-cls
-echo ================================
-echo       AKTIVIERTE PLUGINS
-echo ================================
-echo.
-
-set "FOUND_PLUGIN="
-
-findstr /x /i "server-favoriten" "%PLUGIN_STATE%" >nul
-if not errorlevel 1 (
-    if exist "%~dp0Plugins\Server-Favoriten\plugin.bat" (
-        set "FOUND_PLUGIN=1"
-        echo Starte Server-Favoriten...
-        call "%~dp0Plugins\Server-Favoriten\plugin.bat"
-    )
+if "%PLUGIN_ID%"=="server-favoriten" (
+    set "PLUGIN_FILE=%~dp0Plugins\Server-Favoriten\plugin.bat"
+) else (
+    set "PLUGIN_FILE=%~dp0Plugins\Server-Suche\plugin.bat"
 )
 
-findstr /x /i "server-suche" "%PLUGIN_STATE%" >nul
-if not errorlevel 1 (
-    if exist "%~dp0Plugins\Server-Suche\plugin.bat" (
-        set "FOUND_PLUGIN=1"
-        echo Starte Server-Suche...
-        call "%~dp0Plugins\Server-Suche\plugin.bat"
-    )
+if not exist "!PLUGIN_FILE!" (
+    echo.
+    echo Plugin-Datei nicht gefunden!
+    pause
+    set "PLUGIN_ID="
+    goto plugins
 )
 
-if not defined FOUND_PLUGIN (
-    echo Keine aktivierten Plugins gefunden.
+findstr /x /i "!PLUGIN_ID!" "%PLUGIN_STATE%" >nul
+
+if errorlevel 1 (
+    >>"%PLUGIN_STATE%" echo !PLUGIN_ID!
+    echo.
+    echo Plugin aktiviert!
+) else (
+    findstr /v /i /x "!PLUGIN_ID!" "%PLUGIN_STATE%" > "%PLUGIN_STATE%.tmp"
+    move /y "%PLUGIN_STATE%.tmp" "%PLUGIN_STATE%" >nul
+    echo.
+    echo Plugin deaktiviert!
 )
 
-echo.
+set "PLUGIN_ID="
+set "PLUGIN_FILE="
+
 pause
 goto plugins
+
+
+:: =================================
+:: SERVER-FAVORITEN STARTEN
+:: =================================
+
+:runFavorites
+call "%~dp0Plugins\Server-Favoriten\plugin.bat"
+goto menu
+
+
+:: =================================
+:: SERVER-SUCHE STARTEN
+:: =================================
+
+:runSearch
+call "%~dp0Plugins\Server-Suche\plugin.bat"
+goto menu
